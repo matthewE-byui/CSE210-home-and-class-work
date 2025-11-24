@@ -1,9 +1,9 @@
-using System;
+// using System;
 
-class Program
-{
-    static void Main(string[] args)
-    {
-        Console.WriteLine("Hello Foundation2 World!");
-    }
-}
+// class Program
+// {
+//     static void Main(string[] args)
+//     {
+//         Console.WriteLine("Hello Foundation2 World!");
+//     }
+// }
