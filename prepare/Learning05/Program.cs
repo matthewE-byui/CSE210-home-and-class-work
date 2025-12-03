@@ -1,30 +1,38 @@
 using System;
+using System.Collections.Generic;
 
-namespace employee_demo
+class Program
 {
-    class Program
+    static void Main()
     {
-        static void Main(string[] args)
+        // Test each shape individually first
+        Square square = new Square("Red", 5);
+        Console.WriteLine($"Square Color: {square.GetColor()}");
+        Console.WriteLine($"Square Area: {square.GetArea()}");
+
+        Rectangle rectangle = new Rectangle("Blue", 4, 6);
+        Console.WriteLine($"Rectangle Color: {rectangle.GetColor()}");
+        Console.WriteLine($"Rectangle Area: {rectangle.GetArea()}");
+
+        Circle circle = new Circle("Green", 3);
+        Console.WriteLine($"Circle Color: {circle.GetColor()}");
+        Console.WriteLine($"Circle Area: {circle.GetArea()}");
+
+        Console.WriteLine("\n--- Using Polymorphism with List<Shape> ---\n");
+
+        // List of Shapes
+        List<Shape> shapes = new List<Shape>()
         {
-            HourlyEmployee hEmployee = new HourlyEmployee();
-            hEmployee.SetName("John Doe");
-            hEmployee.SetIdNumber("123abc");
-            hEmployee.SetPayRate(15);
-            hEmployee.SetHoursWorked(35);
+            square,
+            rectangle,
+            circle
+        };
 
-            SalaryEmployee sEmployee = new SalaryEmployee();
-            sEmployee.SetName("Jane Smith");
-            sEmployee.SetIdNumber("456def");
-            sEmployee.SetSalary(60000);
-
-
-            DisplayEmployeeInformation(hEmployee);
-            DisplayEmployeeInformation(sEmployee);
-        }
-        public static void DisplayEmployeeInformation(employee_demo employee)
+        // Loop through them polymorphically
+        foreach (Shape shape in shapes)
         {
-            Console.WriteLine($"{employee.GetName()}");
-            Console.WriteLine("Employee ID: " + employee.GetIdNumber());
+            Console.WriteLine($"Shape Color: {shape.GetColor()}");
+            Console.WriteLine($"Shape Area: {shape.GetArea()}");
         }
     }
 }
