@@ -90,6 +90,9 @@ namespace FinalProject.Engine
             RegisterCommand(new LookupCommand(),
                 new CommandMetadata("lookup", "Search for information", "lookup <query>", "🔍 Lookup",
                     new[] { "search", "google", "find" }));
+
+            RegisterCommand(new SpotifyCommand(),
+                new CommandMetadata("spotify", "Control Spotify playback", "spotify <play|pause|next|prev>", "🎵 Media"));
         }
 
         /// <summary>
