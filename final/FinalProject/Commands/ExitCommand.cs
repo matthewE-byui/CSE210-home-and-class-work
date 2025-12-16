@@ -1,12 +1,21 @@
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// ExitCommand terminates the application.
+    /// Demonstrates polymorphism through command inheritance.
+    /// </summary>
     public class ExitCommand : Command
     {
-        public ExitCommand() : base("exit") { }
+        public ExitCommand() : base("exit", "Exit the application") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Special exit command that signals termination to the engine.
+        /// Demonstrates polymorphic behavior for special command handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
-            return "EXIT";
+            // Return a special marker for exit
+            return CommandResult.SuccessResult("EXIT");
         }
     }
 }

@@ -5,36 +5,51 @@ using System.Text.Json;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// WeatherCommand fetches weather information from Open-Meteo API.
+    /// Demonstrates inheritance and polymorphic command execution.
+    /// Encapsulates HTTP client and API interactions.
+    /// </summary>
     public class WeatherCommand : Command
     {
+        // Encapsulation: Private static HTTP client
         private static readonly HttpClient client = new HttpClient();
 
-        public WeatherCommand() : base("weather") {}
+        public WeatherCommand() : base("weather", "Get current weather information for a city") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes weather command.
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
-            // Example: weather rexburg
-            string city = input.Replace("weather", "").Trim();
+            string city = ExtractParameter(input);
 
             if (string.IsNullOrWhiteSpace(city))
-                return "Usage: weather <city>";
+                return CommandResult.ErrorResult("Usage: weather <city>\nExample: weather rexburg");
 
-            return GetWeather(city).Result;
+            try
+            {
+                return GetWeather(city).Result;
+            }
+            catch (Exception ex)
+            {
+                return CommandResult.ErrorResult($"Error retrieving weather: {ex.Message}");
+            }
         }
 
-        private async Task<string> GetWeather(string city)
+        private async Task<CommandResult> GetWeather(string city)
         {
             try
             {
                 // 1. Convert city name to coordinates
-                string geoUrl =
-                    $"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1";
-
+                string geoUrl = $"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1";
                 string geoResponse = await client.GetStringAsync(geoUrl);
                 var geoData = JsonDocument.Parse(geoResponse);
 
-                if (!geoData.RootElement.TryGetProperty("results", out var results))
-                    return $"Couldn't find city: {city}";
+                if (!geoData.RootElement.TryGetProperty("results", out var results) || results.GetArrayLength() == 0)
+                    return CommandResult.ErrorResult($"Couldn't find city: {city}");
 
                 double lat = results[0].GetProperty("latitude").GetDouble();
                 double lon = results[0].GetProperty("longitude").GetDouble();
@@ -45,24 +60,19 @@ namespace FinalProject.Commands
 
                 string weatherResponse = await client.GetStringAsync(weatherUrl);
                 var weatherData = JsonDocument.Parse(weatherResponse);
-
                 var current = weatherData.RootElement.GetProperty("current_weather");
 
                 double temp = current.GetProperty("temperature").GetDouble();
                 double wind = current.GetProperty("windspeed").GetDouble();
                 int code = current.GetProperty("weathercode").GetInt32();
-
                 string description = WeatherCodeToString(code);
 
-                return
-$@"Weather for {city}:
-Temperature: {temp}°F
-Wind Speed: {wind} mph
-Conditions: {description}";
+                string output = $"🌍 {city}\n🌡️  Temperature: {temp}°F\n💨 Wind Speed: {wind} mph\n☁️  Conditions: {description}";
+                return CommandResult.SuccessResult(FormatOutput("WEATHER INFORMATION", output));
             }
             catch (Exception ex)
             {
-                return "Error retrieving weather: " + ex.Message;
+                return CommandResult.ErrorResult($"Error retrieving weather: {ex.Message}");
             }
         }
 

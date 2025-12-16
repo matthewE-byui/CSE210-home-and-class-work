@@ -4,80 +4,81 @@ using System.Diagnostics;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// AutomationCommand manages automated tasks.
+    /// Demonstrates inheritance, polymorphism, and encapsulation:
+    /// - Inheritance: Inherits from Command
+    /// - Polymorphism: Overrides Execute method
+    /// - Encapsulation: Private helper classes and static fields for task management
+    /// </summary>
     public class AutomationCommand : Command
     {
+        // Encapsulation: Private static storage for tasks
         private static Dictionary<string, AutomatedTask> _tasks = new Dictionary<string, AutomatedTask>();
         private static List<AutomationScheduler> _schedulers = new List<AutomationScheduler>();
 
-        public AutomationCommand() : base("automate") { }
+        public AutomationCommand() : base("automate", "Create and execute automated tasks") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes automation commands (list, add, run, info).
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
             try
             {
-                string[] parts = input.Replace("automate", "").Trim().Split(new[] { ' ' }, 2);
+                string[] parts = ExtractParameter(input).Split(new[] { ' ' }, 2);
 
-                if (parts.Length == 0)
-                    return "Usage: automate <list|add|run|info>";
+                if (parts.Length == 0 || string.IsNullOrWhiteSpace(parts[0]))
+                    return CommandResult.ErrorResult("Usage: automate <list|add|run|info>");
 
                 string action = parts[0].ToLower();
 
-                switch (action)
+                return action switch
                 {
-                    case "list":
-                        return ListTasks();
-
-                    case "add":
-                        if (parts.Length < 2)
-                            return "Usage: automate add <name> <description>";
-                        return AddTask(parts[1]);
-
-                    case "run":
-                        if (parts.Length < 2)
-                            return "Usage: automate run <task_name>";
-                        return RunTask(parts[1].Trim());
-
-                    case "info":
-                        if (parts.Length < 2)
-                            return "Usage: automate info <task_name>";
-                        return GetTaskInfo(parts[1].Trim());
-
-                    default:
-                        return "Unknown automation action. Use: list, add, run, or info";
-                }
+                    "list" => ListTasks(),
+                    "add" => parts.Length < 2
+                        ? CommandResult.ErrorResult("Usage: automate add <name> <description>")
+                        : AddTask(parts[1]),
+                    "run" => parts.Length < 2
+                        ? CommandResult.ErrorResult("Usage: automate run <task_name>")
+                        : RunTask(parts[1].Trim()),
+                    "info" => parts.Length < 2
+                        ? CommandResult.ErrorResult("Usage: automate info <task_name>")
+                        : GetTaskInfo(parts[1].Trim()),
+                    _ => CommandResult.ErrorResult("Unknown automation action. Use: list, add, run, or info")
+                };
             }
             catch (Exception ex)
             {
-                return $"Automation error: {ex.Message}";
+                return CommandResult.ErrorResult($"Automation error: {ex.Message}");
             }
         }
 
-        private string ListTasks()
+        private CommandResult ListTasks()
         {
             if (_tasks.Count == 0)
-                return "No automated tasks created yet. Create one with: automate add <name> <description>";
+                return CommandResult.SuccessResult(FormatOutput("AUTOMATED TASKS", "No automated tasks created yet. Create one with: automate add <name> <description>"));
 
-            string result = "╔════════════════════════════════════════════╗\n";
-            result += "║        AUTOMATED TASKS                      ║\n";
-            result += "╚════════════════════════════════════════════╝\n\n";
-
+            string output = "";
             int index = 1;
             foreach (var task in _tasks)
             {
-                result += $"{index}. 🤖 {task.Key}\n";
-                result += $"   Status: {(task.Value.IsEnabled ? "✓ Enabled" : "✗ Disabled")}\n";
-                result += $"   Created: {task.Value.CreatedTime}\n\n";
+                output += $"{index}. 🤖 {task.Key}\n";
+                output += $"   Status: {(task.Value.IsEnabled ? "✓ Enabled" : "✗ Disabled")}\n";
+                output += $"   Created: {task.Value.CreatedTime}\n\n";
                 index++;
             }
 
-            return result;
+            return CommandResult.SuccessResult(FormatOutput("AUTOMATED TASKS", output.TrimEnd()));
         }
 
-        private string AddTask(string taskData)
+        private CommandResult AddTask(string taskData)
         {
             string[] parts = taskData.Split(new[] { ' ' }, 2);
             if (parts.Length < 2)
-                return "Usage: automate add <name> <description>";
+                return CommandResult.ErrorResult("Usage: automate add <name> <description>");
 
             string taskName = parts[0].Trim();
             string description = parts[1].Trim();
@@ -90,23 +91,22 @@ namespace FinalProject.Commands
                 IsEnabled = true
             };
 
-            return $"✓ Automated task '{taskName}' created successfully!\n  Description: {description}";
+            return CommandResult.SuccessResult($"✓ Automated task '{taskName}' created successfully!\n  Description: {description}");
         }
 
-        private string RunTask(string taskName)
+        private CommandResult RunTask(string taskName)
         {
             if (!_tasks.ContainsKey(taskName))
-                return $"Task '{taskName}' not found. Use 'automate list' to see available tasks.";
+                return CommandResult.ErrorResult($"Task '{taskName}' not found. Use 'automate list' to see available tasks.");
 
             var task = _tasks[taskName];
             if (!task.IsEnabled)
-                return $"Task '{taskName}' is disabled. Cannot run.";
+                return CommandResult.ErrorResult($"Task '{taskName}' is disabled. Cannot run.");
 
             task.LastRun = DateTime.Now;
             task.RunCount++;
 
-            string result = $@"
-▶ Running automation task: {taskName}
+            string output = $@"▶ Running automation task: {taskName}
 📝 Description: {task.Description}
 ⏱️  Started at: {task.LastRun:HH:mm:ss}
 
@@ -116,35 +116,30 @@ namespace FinalProject.Commands
 [Collecting results...]
 
 ✓ Task completed successfully!
-📊 Total runs: {task.RunCount}
-";
+📊 Total runs: {task.RunCount}";
 
-            return result;
+            return CommandResult.SuccessResult(FormatOutput("AUTOMATION EXECUTION", output));
         }
 
-        private string GetTaskInfo(string taskName)
+        private CommandResult GetTaskInfo(string taskName)
         {
             if (!_tasks.ContainsKey(taskName))
-                return $"Task '{taskName}' not found.";
+                return CommandResult.ErrorResult($"Task '{taskName}' not found.");
 
             var task = _tasks[taskName];
-
-            string result = $@"
-╔════════════════════════════════════════════╗
-║        TASK INFORMATION                     ║
-╚════════════════════════════════════════════╝
-
-📌 Name:        {task.Name}
+            string output = $@"📌 Name:        {task.Name}
 📝 Description: {task.Description}
 ✓  Status:      {(task.IsEnabled ? "Enabled" : "Disabled")}
 📅 Created:     {task.CreatedTime:yyyy-MM-dd HH:mm:ss}
 🕐 Last Run:    {(task.LastRun.HasValue ? task.LastRun.Value.ToString("yyyy-MM-dd HH:mm:ss") : "Never")}
-🔢 Total Runs:  {task.RunCount}
-";
+🔢 Total Runs:  {task.RunCount}";
 
-            return result;
+            return CommandResult.SuccessResult(FormatOutput("TASK INFORMATION", output));
         }
 
+        /// <summary>
+        /// Encapsulated private class representing an automated task.
+        /// </summary>
         private class AutomatedTask
         {
             public string Name { get; set; }
@@ -155,6 +150,9 @@ namespace FinalProject.Commands
             public int RunCount { get; set; }
         }
 
+        /// <summary>
+        /// Encapsulated private class for task scheduling.
+        /// </summary>
         private class AutomationScheduler
         {
             public string TaskName { get; set; }

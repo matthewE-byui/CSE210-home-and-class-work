@@ -3,24 +3,39 @@ using System.IO;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// CreateFileCommand creates new files.
+    /// Demonstrates inheritance and polymorphic command execution.
+    /// Encapsulates file I/O operations.
+    /// </summary>
     public class CreateFileCommand : Command
     {
-        public CreateFileCommand() : base("createfile") {}
+        public CreateFileCommand() : base("createfile", "Create a new file with content") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes create file command.
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
-            // Example: createfile notes.txt Hello world
-            string[] parts = input.Split(" ", 3);
+            string[] parts = input.Split(new[] { ' ' }, 3, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length < 3)
-                return "Usage: createfile <filename> <content>";
+                return CommandResult.ErrorResult("Usage: createfile <filename> <content>\nExample: createfile notes.txt Hello world");
 
-            string filename = parts[1];
-            string text = parts[2];
+            try
+            {
+                string filename = parts[1];
+                string content = parts[2];
 
-            File.WriteAllText(filename, text);
-
-            return $"Created file '{filename}' with content.";
+                File.WriteAllText(filename, content);
+                return CommandResult.SuccessResult($"✓ Created file '{filename}' with content.");
+            }
+            catch (Exception ex)
+            {
+                return CommandResult.ErrorResult($"Failed to create file: {ex.Message}");
+            }
         }
     }
 }

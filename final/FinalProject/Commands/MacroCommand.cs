@@ -4,100 +4,123 @@ using System.Linq;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// MacroCommand allows users to chain multiple commands together.
+    /// Demonstrates dependency injection: receives executor to enable command chaining.
+    /// Shows proper command interaction without tight coupling.
+    /// </summary>
     public class MacroCommand : Command
     {
+        // Encapsulation: Private static storage of macros
         private static Dictionary<string, string> _macros = new Dictionary<string, string>();
+        // Dependency: Injected by engine to enable executing other commands
+        private ICommandExecutor _executor;
 
-        public MacroCommand() : base("macro") { }
+        public MacroCommand() : base("macro", "Create and execute command chains (macros)") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Sets the executor for running chained commands.
+        /// Demonstrates dependency injection pattern.
+        /// </summary>
+        public void SetExecutor(ICommandExecutor executor)
+        {
+            _executor = executor;
+        }
+
+        /// <summary>
+        /// Executes macro commands (list, run, save).
+        /// Demonstrates polymorphism and proper command interactions.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
             try
             {
-                string[] parts = input.Replace("macro", "").Trim().Split(new[] { ' ' }, 2);
+                string[] parts = ExtractParameter(input).Split(new[] { ' ' }, 2);
 
-                if (parts.Length == 0)
-                    return "Usage: macro <list|run|save> [name] [commands]";
+                if (parts.Length == 0 || string.IsNullOrWhiteSpace(parts[0]))
+                    return CommandResult.ErrorResult("Usage: macro <list|run|save> [name] [commands]");
 
                 string action = parts[0].ToLower();
 
-                switch (action)
+                return action switch
                 {
-                    case "list":
-                        return ListMacros();
-
-                    case "run":
-                        if (parts.Length < 2)
-                            return "Usage: macro run <macro_name>";
-                        return RunMacro(parts[1].Trim());
-
-                    case "save":
-                        if (parts.Length < 2)
-                            return "Usage: macro save <name> <command1>; <command2>; ...";
-                        return SaveMacro(input);
-
-                    default:
-                        return "Unknown macro action. Use: list, run, or save";
-                }
+                    "list" => ListMacros(),
+                    "run" => parts.Length < 2 
+                        ? CommandResult.ErrorResult("Usage: macro run <macro_name>")
+                        : RunMacro(parts[1].Trim()),
+                    "save" => parts.Length < 2
+                        ? CommandResult.ErrorResult("Usage: macro save <name> <command1>; <command2>; ...")
+                        : SaveMacro(input),
+                    _ => CommandResult.ErrorResult("Unknown macro action. Use: list, run, or save")
+                };
             }
             catch (Exception ex)
             {
-                return $"Macro error: {ex.Message}";
+                return CommandResult.ErrorResult($"Macro error: {ex.Message}");
             }
         }
 
-        private string ListMacros()
+        private CommandResult ListMacros()
         {
             if (_macros.Count == 0)
-                return "No macros saved yet. Create one with: macro save <name> <commands>";
+                return CommandResult.SuccessResult(FormatOutput("SAVED MACROS", "No macros saved yet. Create one with: macro save <name> <commands>"));
 
-            string result = "╔════════════════════════════════════════╗\n";
-            result += "║          SAVED MACROS                   ║\n";
-            result += "╚════════════════════════════════════════╝\n\n";
-
+            string output = "";
             foreach (var macro in _macros)
             {
-                result += $"📌 {macro.Key}\n";
-                result += $"   Commands: {macro.Value}\n\n";
+                output += $"📌 {macro.Key}\n";
+                output += $"   Commands: {macro.Value}\n\n";
             }
 
-            return result;
+            return CommandResult.SuccessResult(FormatOutput("SAVED MACROS", output.TrimEnd()));
         }
 
-        private string SaveMacro(string input)
+        private CommandResult SaveMacro(string input)
         {
-            // Format: macro save <name> <commands>
             string[] parts = input.Replace("macro save", "").Trim().Split(new[] { ' ' }, 2);
             
             if (parts.Length < 2)
-                return "Usage: macro save <name> <command1>; <command2>; ...";
+                return CommandResult.ErrorResult("Usage: macro save <name> <command1>; <command2>; ...");
 
             string macroName = parts[0].Trim();
             string commands = parts[1].Trim();
 
             _macros[macroName] = commands;
-            return $"✓ Macro '{macroName}' saved successfully!\n  Run it with: macro run {macroName}";
+            return CommandResult.SuccessResult($"✓ Macro '{macroName}' saved successfully!\n  Run it with: macro run {macroName}");
         }
 
-        private string RunMacro(string macroName)
+        private CommandResult RunMacro(string macroName)
         {
             if (!_macros.ContainsKey(macroName))
-                return $"Macro '{macroName}' not found. Use 'macro list' to see available macros.";
+                return CommandResult.ErrorResult($"Macro '{macroName}' not found. Use 'macro list' to see available macros.");
 
             string commands = _macros[macroName];
-            string result = $"▶ Executing macro: {macroName}\n\n";
+            string output = $"▶ Executing macro: {macroName}\n\n";
 
-            // Split by semicolon for multiple commands
             var commandList = commands.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var cmd in commandList)
             {
-                result += $"[Running: {cmd.Trim()}]\n";
-                // Note: In real implementation, would pass to CommandEngine
-                result += "---\n";
+                string trimmedCmd = cmd.Trim();
+                output += $"[Running: {trimmedCmd}]\n";
+                
+                // If executor is available, execute the chained command
+                if (_executor != null)
+                {
+                    // Extract command name and input
+                    string[] cmdParts = trimmedCmd.Split(new[] { ' ' }, 2);
+                    string cmdName = cmdParts[0];
+                    string cmdInput = cmdParts.Length > 1 ? trimmedCmd : cmdName;
+                    
+                    // Execute the command through the executor
+                    CommandResult result = _executor.ExecuteCommand(cmdName, cmdInput);
+                    output += result.ToString() + "\n";
+                }
+                
+                output += "---\n";
             }
 
-            return result;
+            return CommandResult.SuccessResult(output);
         }
     }
 }

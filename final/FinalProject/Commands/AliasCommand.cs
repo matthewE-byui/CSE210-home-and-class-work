@@ -50,12 +50,15 @@ namespace FinalProject.Commands
             { "quit", "exit" }
         };
 
-        public AliasCommand() : base("__alias__") { }
+        public AliasCommand() : base("__alias__", "Internal alias resolver") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Alias commands are not directly executable.
+        /// Demonstrates polymorphism: overrides Execute but returns error.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
-            // This command is typically used internally
-            return "Alias command should not be called directly.";
+            return CommandResult.ErrorResult("Alias command should not be called directly.");
         }
 
         public static string ResolveAlias(string input)

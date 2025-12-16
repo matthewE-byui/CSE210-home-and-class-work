@@ -3,31 +3,42 @@ using System.Runtime.InteropServices;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// SystemInfoCommand displays system information.
+    /// Demonstrates inheritance and polymorphic command execution.
+    /// Encapsulates system information gathering logic.
+    /// </summary>
     public class SystemInfoCommand : Command
     {
-        public SystemInfoCommand() : base("sysinfo") {}
+        public SystemInfoCommand() : base("sysinfo", "Display system information") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes system info command.
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
-            string osDesc = RuntimeInformation.OSDescription;
-            string arch = RuntimeInformation.OSArchitecture.ToString();
-            string runtime = RuntimeInformation.FrameworkDescription;
+            try
+            {
+                string osDesc = RuntimeInformation.OSDescription;
+                string arch = RuntimeInformation.OSArchitecture.ToString();
+                string runtime = RuntimeInformation.FrameworkDescription;
 
-            string result = $@"
-╔════════════════════════════════════════════════════════╗
-║           SYSTEM INFORMATION                           ║
-╚════════════════════════════════════════════════════════╝
-
-💻 Operating System:  {osDesc}
+                string output = $@"💻 Operating System:  {osDesc}
 🏗️  Architecture:      {arch}
 ⚙️  Runtime:           {runtime}
 📊 Processor Count:   {Environment.ProcessorCount}
 🖥️  Computer Name:    {Environment.MachineName}
 👤 Username:          {Environment.UserName}
-🕐 Current Time:      {DateTime.Now:yyyy-MM-dd HH:mm:ss}
-";
+🕐 Current Time:      {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
 
-            return result;
+                return CommandResult.SuccessResult(FormatOutput("SYSTEM INFORMATION", output));
+            }
+            catch (Exception ex)
+            {
+                return CommandResult.ErrorResult($"Failed to retrieve system info: {ex.Message}");
+            }
         }
     }
 }

@@ -3,37 +3,38 @@ using System.Data;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// MathCommand evaluates mathematical expressions.
+    /// Demonstrates inheritance and polymorphic Execute implementation.
+    /// </summary>
     public class MathCommand : Command
     {
-        public MathCommand() : base("math") {}
+        public MathCommand() : base("math", "Evaluate mathematical expressions") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes math evaluation.
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling encapsulation.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
             try
             {
-                // input example: "math 5+9*2"
-                string expression = input.Replace("math", "").Trim();
+                // Extract the expression after "math" command
+                string expression = ExtractParameter(input);
 
                 if (string.IsNullOrWhiteSpace(expression))
-                    return "Usage: math <expression>\nExample: math 5+3*2";
+                    return CommandResult.ErrorResult("Usage: math <expression>\nExample: math 5+3*2");
 
                 var table = new DataTable();
                 var result = table.Compute(expression, "");
 
-                string output = $@"
-╔════════════════════════════════════════╗
-║            MATH CALCULATOR             ║
-╚════════════════════════════════════════╝
-
-📝 Expression: {expression}
-✓  Result:     {result}
-";
-
-                return output;
+                string output = $"📝 Expression: {expression}\n✓  Result:     {result}";
+                return CommandResult.SuccessResult(FormatOutput("MATH CALCULATOR", output));
             }
             catch (Exception ex)
             {
-                return $"❌ Invalid math expression: {ex.Message}\nExample: math 5+3*2";
+                return CommandResult.ErrorResult($"Invalid math expression: {ex.Message}\nExample: math 5+3*2");
             }
         }
     }

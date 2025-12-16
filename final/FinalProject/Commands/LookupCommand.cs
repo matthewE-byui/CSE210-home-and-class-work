@@ -4,25 +4,32 @@ using System.Runtime.InteropServices;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// LookupCommand performs Google searches.
+    /// Demonstrates inheritance and polymorphic command execution.
+    /// Encapsulates browser launching and URL handling logic.
+    /// </summary>
     public class LookupCommand : Command
     {
-        public LookupCommand() : base("lookup") { }
+        public LookupCommand() : base("lookup", "Search Google for information") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes lookup command.
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
             try
             {
-                // input example: "lookup C# async await"
-                string query = input.Replace("lookup", "").Trim();
+                string query = ExtractParameter(input);
 
                 if (string.IsNullOrWhiteSpace(query))
-                    return "Usage: lookup <search_term>\nExample: lookup C# async await";
+                    return CommandResult.ErrorResult("Usage: lookup <search_term>\nExample: lookup C# async await");
 
-                // URL encode the query for Google search
                 string encodedQuery = Uri.EscapeDataString(query);
                 string googleUrl = $"https://www.google.com/search?q={encodedQuery}";
 
-                // Open in default browser
                 try
                 {
                     Process.Start(new ProcessStartInfo
@@ -33,7 +40,6 @@ namespace FinalProject.Commands
                 }
                 catch
                 {
-                    // Fallback for Linux/Mac or if UseShellExecute fails
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
                         Process.Start("xdg-open", googleUrl);
@@ -48,21 +54,12 @@ namespace FinalProject.Commands
                     }
                 }
 
-                string result = $@"
-╔════════════════════════════════════════╗
-║         GOOGLE SEARCH LOOKUP           ║
-╚════════════════════════════════════════╝
-
-🔍 Query:    {query}
-🌐 URL:      {googleUrl}
-✓  Opening in default browser...
-";
-
-                return result;
+                string output = $"🔍 Query:    {query}\n🌐 URL:      {googleUrl}\n✓  Opening in default browser...";
+                return CommandResult.SuccessResult(FormatOutput("GOOGLE SEARCH LOOKUP", output));
             }
             catch (Exception ex)
             {
-                return $"❌ Lookup error: {ex.Message}";
+                return CommandResult.ErrorResult($"Lookup error: {ex.Message}");
             }
         }
     }

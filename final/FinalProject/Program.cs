@@ -1,6 +1,12 @@
 using System;
 using FinalProject.Engine;
 
+/// <summary>
+/// Main program entry point for JARVIS Command Engine.
+/// Demonstrates proper separation of concerns:
+/// - Engine handles command polymorphism
+/// - Program handles UI/display logic
+/// </summary>
 class Program
 {
     static void Main(string[] args)
@@ -20,6 +26,7 @@ class Program
 
             string response = engine.Process(input);
 
+            // Check for special exit signal
             if (response == "EXIT")
             {
                 running = false;

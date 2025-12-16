@@ -3,31 +3,46 @@ using System.Diagnostics;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// OpenAppCommand launches applications.
+    /// Demonstrates inheritance and polymorphic command execution.
+    /// Encapsulates process execution logic.
+    /// </summary>
     public class OpenAppCommand : Command
     {
-        public OpenAppCommand() : base("open") {}
+        public OpenAppCommand() : base("open", "Open an application") { }
 
-        public override string Execute(string input)
+        /// <summary>
+        /// Executes open app command.
+        /// Demonstrates polymorphism: overrides abstract Execute method.
+        /// Returns CommandResult for proper error handling.
+        /// </summary>
+        public override CommandResult Execute(string input)
         {
-            // Example: open notepad
-            string program = input.Replace("open", "").Trim().ToLower();
+            string program = ExtractParameter(input).ToLower();
+
+            if (string.IsNullOrWhiteSpace(program))
+                return CommandResult.ErrorResult("Usage: open <app>\nSupported: notepad, calc, edge");
 
             try
             {
-                if (program == "notepad")
-                    Process.Start("notepad.exe");
-                else if (program == "calculator" || program == "calc")
-                    Process.Start("calc.exe");
-                else if (program == "edge")
-                    Process.Start("msedge.exe");
-                else
-                    return "Unknown app. Try: notepad, calc, edge.";
+                string exeName = program switch
+                {
+                    "notepad" => "notepad.exe",
+                    "calculator" or "calc" => "calc.exe",
+                    "edge" => "msedge.exe",
+                    _ => null
+                };
 
-                return $"Opening {program}...";
+                if (exeName == null)
+                    return CommandResult.ErrorResult("Unknown app. Try: notepad, calc, edge");
+
+                Process.Start(exeName);
+                return CommandResult.SuccessResult($"✓ Opening {program}...");
             }
-            catch
+            catch (Exception ex)
             {
-                return "Failed to open program.";
+                return CommandResult.ErrorResult($"Failed to open {program}: {ex.Message}");
             }
         }
     }

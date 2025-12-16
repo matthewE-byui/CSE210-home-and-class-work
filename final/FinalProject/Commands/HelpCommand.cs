@@ -1,84 +1,95 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FinalProject.Commands
 {
+    /// <summary>
+    /// HelpCommand displays available commands dynamically from the registry.
+    /// Demonstrates decoupling: no hard-coded command information.
+    /// Works with ICommandExecutor to access command registry.
+    /// Shows proper use of dependency injection pattern.
+    /// </summary>
     public class HelpCommand : Command
     {
-        public HelpCommand() : base("help") { }
+        // Dependency: Will be injected by the engine when Execute is called
+        private ICommandExecutor _executor;
 
-        public override string Execute(string input)
+        public HelpCommand() : base("help", "Display available commands and usage information") { }
+
+        /// <summary>
+        /// Sets the executor for accessing the registry.
+        /// Demonstrates dependency injection without constructor pollution.
+        /// </summary>
+        public void SetExecutor(ICommandExecutor executor)
         {
-            string help = @"
-╔════════════════════════════════════════════════════════╗
-║           AVAILABLE COMMANDS IN JARVIS                 ║
-╚════════════════════════════════════════════════════════╝
+            _executor = executor;
+        }
 
-📅  TIME
-    • time                    - Display current date and time
-    • 'what time is it'       - Alternative way to ask the time
+        /// <summary>
+        /// Executes help command with dynamically generated content.
+        /// No hard-coded command list - reads from registry.
+        /// If executor is not set, falls back to basic help.
+        /// </summary>
+        public override CommandResult Execute(string input)
+        {
+            if (_executor == null)
+                return CommandResult.SuccessResult(FormatOutput("AVAILABLE COMMANDS", GetBasicHelp()));
 
-🌤️   WEATHER
-    • weather <city>          - Get current weather information
-    • 'how is the weather'    - Alternative way to ask
-    • Example: 'weather rexburg'
+            string helpText = GenerateHelpFromRegistry(_executor.GetRegistry());
+            return CommandResult.SuccessResult(FormatOutput("AVAILABLE COMMANDS IN JARVIS", helpText));
+        }
 
-📊 SYSTEM INFO
-    • sysinfo                 - Display system information
-    • 'system info'           - Alternative way to ask
-    • 'cpu'                   - Quick CPU/system check
+        /// <summary>
+        /// Dynamically generates help text from the command registry.
+        /// Groups commands by category and displays them.
+        /// This ensures help is always in sync with registered commands.
+        /// </summary>
+        private string GenerateHelpFromRegistry(CommandRegistry registry)
+        {
+            var output = "";
+            
+            // Group commands by category
+            var categoriesGroup = registry.GetCommandsByCategory();
 
-🔢 MATH
-    • math <expression>       - Calculate math expressions
-    • Examples: 'math 5+3*2', 'math 100/5', 'math 2^8'
+            foreach (var category in categoriesGroup)
+            {
+                output += $"\n{category.Key}\n";
+                
+                foreach (var commandKvp in category)
+                {
+                    var meta = commandKvp.Value;
+                    output += $"    • {meta.Name,-15} - {meta.Description}\n";
+                    
+                    if (meta.Aliases.Length > 0)
+                    {
+                        output += $"      Aliases: {string.Join(", ", meta.Aliases)}\n";
+                    }
+                }
+            }
 
-📄 FILE OPERATIONS
-    • createfile <name>       - Create a new file
-    • Examples: 'createfile test.txt', 'createfile data.csv'
+            output += "\n════════════════════════════════════════════════════════\n";
+            output += "💡 TIP: Try natural language! Commands accept aliases like:\n";
+            output += "   'what time is it' instead of 'time'\n";
+            output += "   'how is the weather' instead of 'weather'\n";
 
-🚀 APPLICATIONS
-    • open <app_name>         - Open an application
-    • Examples: 'open notepad', 'open calc', 'open explorer'
+            return output;
+        }
 
-🔍 GOOGLE LOOKUP
-    • lookup <query>          - Search Google for information
-    • Natural language search prompts (all do the same thing):
-      search, search for, google, google for, find, find me
-      what is, what are, who is, tell me about, explain
-      definition of, how to, how do i, how does
-    • Examples: 'what is C# delegates', 'how to use Python decorators'
+        /// <summary>
+        /// Basic help text used when registry is unavailable.
+        /// </summary>
+        private string GetBasicHelp()
+        {
+            return @"Type 'help' to see commands grouped by category.
+The system supports many natural language aliases!
 
-⚙️  MACROS (Command Chaining)
-    • macro save <name> <cmd1>; <cmd2>   - Create command chain
-    • macro run <name>        - Execute a saved macro
-    • macro list              - List all saved macros
-    • Example: 'macro save startup sysinfo; time'
-
-🤖 AUTOMATION (Task Automation)
-    • automate list           - List all automated tasks
-    • automate add <name> <desc> - Create a new automation task
-    • automate run <name>     - Execute an automated task
-    • automate info <name>    - Get task information
-
-🆘 GENERAL
-    • help                    - Show this help menu
-    • ?, commands             - Alternative ways to get help
-    • exit, quit              - Exit the application
-
-════════════════════════════════════════════════════════
-
-🎯 SMART ALIASES (Natural Language)
-    Try natural language alternatives like:
-    • 'what time is it' instead of 'time'
-    • 'how is the weather' instead of 'weather'
-    • 'system info' instead of 'sysinfo'
-    • 'show commands' instead of 'help'
-    • Search queries: 'what is C#', 'how to code', 'find python docs'
-      (and many more natural phrasing options)
-
-════════════════════════════════════════════════════════";
-
-            return help;
+Common commands:
+  • time     - Display current date and time
+  • weather  - Get weather information
+  • math     - Calculate expressions
+  • help     - Show this help menu
+  • exit     - Exit the application";
         }
     }
 }
